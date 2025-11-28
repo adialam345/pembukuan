@@ -146,8 +146,9 @@ function App() {
 
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Adding transaction:', newTransaction);
     try {
-      const { error } = await supabase.from('transactions').insert([
+      const { data, error } = await supabase.from('transactions').insert([
         {
           date: newTransaction.date,
           description: newTransaction.description,
@@ -155,9 +156,15 @@ function App() {
           type: newTransaction.type,
           payment_status: newTransaction.payment_status,
         },
-      ]);
+      ]).select();
 
-      if (!error) {
+      console.log('Insert result:', { data, error });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        alert('Error menambahkan transaksi: ' + error.message);
+      } else {
+        console.log('Transaction added successfully:', data);
         setShowAddTransaction(false);
         setNewTransaction({
           date: new Date().toISOString().split('T')[0],
@@ -166,10 +173,11 @@ function App() {
           type: 'income',
           payment_status: 'paid',
         });
-        fetchData();
+        await fetchData();
       }
     } catch (error) {
       console.error('Error adding transaction:', error);
+      alert('Error: ' + (error as Error).message);
     }
   };
 

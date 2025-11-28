@@ -13,18 +13,20 @@ interface DashboardPageProps {
     transactions: Transaction[];
 }
 
+// Optimized animations for better performance
 const container = {
     hidden: { opacity: 0 },
     show: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.1
+            staggerChildren: 0.03,
+            delayChildren: 0
         }
     }
 };
 
 const item = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 8 },
     show: { opacity: 1, y: 0 }
 };
 
