@@ -17,17 +17,17 @@ const container = {
     show: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.05
+            staggerChildren: 0.02 // Dikurangi untuk rendering lebih cepat
         }
     }
 };
 
 const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    hidden: { opacity: 0, y: 8 }, // Dikurangi untuk animasi lebih halus
+    show: { opacity: 1, y: 0, transition: { duration: 0.2 } }
 };
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10; // Dikurangi untuk performa mobile yang lebih baik
 
 export const TransactionsPage = ({
     transactions,
