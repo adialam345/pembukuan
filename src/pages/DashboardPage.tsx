@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, DollarSign, AlertCircle, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -30,8 +29,6 @@ const item = {
     show: { opacity: 1, y: 0 }
 };
 
-const ITEMS_PER_PAGE = 5;
-
 
 export const DashboardPage = ({
     currentMonthStats,
@@ -40,41 +37,6 @@ export const DashboardPage = ({
     loading,
     transactions,
 }: DashboardPageProps) => {
-    const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
-    const observerTarget = useRef<HTMLDivElement>(null);
-
-    const displayedTransactions = transactions.slice(0, displayedCount);
-    const hasMore = displayedCount < transactions.length;
-
-    // Load more items smoothly without loading indicator
-    const loadMore = useCallback(() => {
-        if (!hasMore) return;
-        setDisplayedCount(prev => Math.min(prev + ITEMS_PER_PAGE, transactions.length));
-    }, [hasMore, transactions.length]);
-
-    // Intersection Observer for infinite scroll
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && hasMore) {
-                    loadMore();
-                }
-            },
-            { threshold: 0.1 }
-        );
-
-        const currentTarget = observerTarget.current;
-        if (currentTarget) {
-            observer.observe(currentTarget);
-        }
-
-        return () => {
-            if (currentTarget) {
-                observer.unobserve(currentTarget);
-            }
-        };
-    }, [hasMore, loadMore]);
-
     return (
         <motion.div
             variants={container}
@@ -238,17 +200,12 @@ export const DashboardPage = ({
                 </motion.div>
             </div>
 
-            {/* Recent Transactions with Infinite Scroll */}
+            {/* Recent Transactions */}
             <motion.div variants={item} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                     <div>
                         <h3 className="text-lg font-bold text-gray-900">Transaksi Terbaru</h3>
-                        <p className="text-sm text-gray-500">
-                            {displayedCount < transactions.length
-                                ? `Menampilkan ${displayedCount} dari ${transactions.length} transaksi`
-                                : `${transactions.length} transaksi`
-                            }
-                        </p>
+                        <p className="text-sm text-gray-500">5 aktivitas terakhir</p>
                     </div>
                 </div>
                 <div className="divide-y divide-gray-50">
@@ -257,40 +214,35 @@ export const DashboardPage = ({
                     ) : transactions.length === 0 ? (
                         <p className="text-gray-500 text-center py-10 text-sm">Belum ada transaksi</p>
                     ) : (
-                        <>
-                            {displayedTransactions.map((transaction) => (
-                                <div key={transaction.id} className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between group">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`p-3 rounded-full ${transaction.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                                            }`}>
-                                            {transaction.type === 'income' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-sm text-gray-900 group-hover:text-black transition-colors">{transaction.description}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-xs text-gray-500">
-                                                    {new Date(transaction.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                                </span>
-                                                {transaction.payment_status === 'unpaid' && (
-                                                    <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
-                                                        Unpaid
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
+                        transactions.slice(0, 5).map((transaction) => (
+                            <div key={transaction.id} className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between group">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-3 rounded-full ${transaction.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                                        }`}>
+                                        {transaction.type === 'income' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`text-sm font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                            }`}>
-                                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
-                                        </p>
+                                    <div>
+                                        <p className="font-bold text-sm text-gray-900 group-hover:text-black transition-colors">{transaction.description}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-xs text-gray-500">
+                                                {new Date(transaction.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </span>
+                                            {transaction.payment_status === 'unpaid' && (
+                                                <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
+                                                    Unpaid
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-
-                            {/* Invisible trigger for infinite scroll - smooth without loading indicator */}
-                            {hasMore && <div ref={observerTarget} className="h-1" />}
-                        </>
+                                <div className="text-right">
+                                    <p className={`text-sm font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
                     )}
                 </div>
             </motion.div>
