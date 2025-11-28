@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Search, Filter } from 'lucide-react';
+import { Plus, Trash2, Search, Filter, Loader2 } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 import { Transaction } from '../types';
 
@@ -27,6 +27,8 @@ const item = {
     show: { opacity: 1, y: 0 }
 };
 
+const ITEMS_PER_PAGE = 20;
+
 export const TransactionsPage = ({
     transactions,
     loading,
@@ -38,6 +40,10 @@ export const TransactionsPage = ({
     const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'unpaid'>('all');
     const [filterMonth, setFilterMonth] = useState<string>('all');
+    const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const observerTarget = useRef<HTMLDivElement>(null);
 
     const filteredTransactions = transactions.filter((t) => {
         const matchesSearch = t.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -52,6 +58,49 @@ export const TransactionsPage = ({
 
         return matchesSearch && matchesType && matchesStatus && matchesMonth;
     });
+
+    const displayedTransactions = filteredTransactions.slice(0, displayedCount);
+    const hasMore = displayedCount < filteredTransactions.length;
+
+    // Reset displayed count when filters change
+    useEffect(() => {
+        setDisplayedCount(ITEMS_PER_PAGE);
+    }, [searchQuery, filterType, filterStatus, filterMonth]);
+
+    // Load more items
+    const loadMore = useCallback(() => {
+        if (isLoadingMore || !hasMore) return;
+
+        setIsLoadingMore(true);
+        // Simulate loading delay for smooth UX
+        setTimeout(() => {
+            setDisplayedCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredTransactions.length));
+            setIsLoadingMore(false);
+        }, 300);
+    }, [isLoadingMore, hasMore, filteredTransactions.length]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+                    loadMore();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasMore, isLoadingMore, loadMore]);
 
     return (
         <motion.div
@@ -161,57 +210,80 @@ export const TransactionsPage = ({
                         {transactions.length === 0 ? 'Belum ada transaksi' : 'Tidak ada transaksi yang cocok'}
                     </p>
                 ) : (
-                    filteredTransactions.map((transaction) => (
-                        <motion.div variants={item} key={transaction.id} className="p-4 md:p-6 hover:bg-gray-50 transition-colors">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between md:justify-start gap-4 mb-2 md:mb-1">
-                                        <p className="font-bold text-sm md:text-base text-gray-900">{transaction.description}</p>
-                                        <button onClick={() => handleDeleteTransaction(transaction.id)} className="md:hidden text-gray-400 hover:text-gray-900">
-                                            <Trash2 size={16} strokeWidth={2} />
-                                        </button>
+                    <>
+                        {displayedTransactions.map((transaction) => (
+                            <motion.div variants={item} key={transaction.id} className="p-4 md:p-6 hover:bg-gray-50 transition-colors">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between md:justify-start gap-4 mb-2 md:mb-1">
+                                            <p className="font-bold text-sm md:text-base text-gray-900">{transaction.description}</p>
+                                            <button onClick={() => handleDeleteTransaction(transaction.id)} className="md:hidden text-gray-400 hover:text-gray-900">
+                                                <Trash2 size={16} strokeWidth={2} />
+                                            </button>
+                                        </div>
+                                        <p className="text-xs md:text-sm text-gray-500">
+                                            {new Date(transaction.date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </p>
                                     </div>
-                                    <p className="text-xs md:text-sm text-gray-500">
-                                        {new Date(transaction.date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </p>
-                                </div>
 
-                                <div className="flex items-center justify-between md:justify-end gap-4 md:gap-8">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-xs md:text-sm px-2.5 py-1 rounded-lg font-medium border ${transaction.type === 'income'
+                                    <div className="flex items-center justify-between md:justify-end gap-4 md:gap-8">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-xs md:text-sm px-2.5 py-1 rounded-lg font-medium border ${transaction.type === 'income'
                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                                 : 'bg-rose-50 text-rose-700 border-rose-100'
-                                            }`}>
-                                            {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
-                                        </span>
-                                        <span className={`text-xs md:text-sm px-2.5 py-1 rounded-lg font-medium ${transaction.payment_status === 'paid'
+                                                }`}>
+                                                {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                                            </span>
+                                            <span className={`text-xs md:text-sm px-2.5 py-1 rounded-lg font-medium ${transaction.payment_status === 'paid'
                                                 ? 'bg-gray-100 text-gray-700 border border-gray-200'
                                                 : 'bg-gray-900 text-white'
-                                            }`}>
-                                            {transaction.payment_status === 'paid' ? 'Lunas' : 'Belum Lunas'}
-                                        </span>
-                                        {transaction.payment_status === 'unpaid' && (
-                                            <button
-                                                onClick={() => handleMarkAsPaid(transaction.id)}
-                                                className="text-xs md:text-sm px-3 py-1 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors shadow-sm"
-                                            >
-                                                Lunasi
+                                                }`}>
+                                                {transaction.payment_status === 'paid' ? 'Lunas' : 'Belum Lunas'}
+                                            </span>
+                                            {transaction.payment_status === 'unpaid' && (
+                                                <button
+                                                    onClick={() => handleMarkAsPaid(transaction.id)}
+                                                    className="text-xs md:text-sm px-3 py-1 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                                                >
+                                                    Lunasi
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <p className={`text-sm md:text-base font-bold ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
+                                                }`}>
+                                                {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
+                                            </p>
+                                            <button onClick={() => handleDeleteTransaction(transaction.id)} className="hidden md:block text-gray-400 hover:text-red-500 transition-colors">
+                                                <Trash2 size={18} strokeWidth={2} />
                                             </button>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        <p className={`text-sm md:text-base font-bold ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
-                                            }`}>
-                                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Number(transaction.amount))}
-                                        </p>
-                                        <button onClick={() => handleDeleteTransaction(transaction.id)} className="hidden md:block text-gray-400 hover:text-red-500 transition-colors">
-                                            <Trash2 size={18} strokeWidth={2} />
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
+                            </motion.div>
+                        ))}
+
+                        {/* Infinite Scroll Trigger */}
+                        {hasMore && (
+                            <div ref={observerTarget} className="p-6 flex justify-center">
+                                {isLoadingMore && (
+                                    <div className="flex items-center gap-2 text-gray-500">
+                                        <Loader2 className="animate-spin" size={18} />
+                                        <span className="text-sm">Memuat lebih banyak...</span>
+                                    </div>
+                                )}
                             </div>
-                        </motion.div>
-                    ))
+                        )}
+
+                        {/* Show count info */}
+                        {!hasMore && displayedTransactions.length > ITEMS_PER_PAGE && (
+                            <div className="p-4 text-center">
+                                <p className="text-xs text-gray-500">
+                                    Menampilkan semua {filteredTransactions.length} transaksi
+                                </p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </motion.div>
