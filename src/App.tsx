@@ -15,6 +15,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { JournalPage } from './pages/JournalPage';
+import { LedgerPage } from './pages/LedgerPage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<NavPage>('dashboard');
@@ -295,6 +297,8 @@ function App() {
               {[
                 { page: 'dashboard', icon: Home, label: 'Dashboard' },
                 { page: 'transactions', icon: Receipt, label: 'Transaksi' },
+                { page: 'journal', icon: FileText, label: 'Jurnal Umum' },
+                { page: 'ledger', icon: Briefcase, label: 'Buku Besar' },
                 { page: 'services', icon: Briefcase, label: 'Layanan' },
                 { page: 'reports', icon: FileText, label: 'Laporan' },
               ].map(({ page, icon: Icon, label }) => (
@@ -376,6 +380,16 @@ function App() {
                   <ReportsPage transactions={transactions} />
                 </PageTransition>
               )}
+              {currentPage === 'journal' && (
+                <PageTransition key="journal">
+                  <JournalPage transactions={transactions} />
+                </PageTransition>
+              )}
+              {currentPage === 'ledger' && (
+                <PageTransition key="ledger">
+                  <LedgerPage transactions={transactions} />
+                </PageTransition>
+              )}
             </AnimatePresence>
           </div>
         </main>
@@ -387,6 +401,8 @@ function App() {
             {[
               { page: 'dashboard', icon: Home, label: 'Home' },
               { page: 'transactions', icon: Receipt, label: 'Transaksi' },
+              { page: 'journal', icon: FileText, label: 'Jurnal' },
+              { page: 'ledger', icon: Briefcase, label: 'Buku Besar' },
               { page: 'services', icon: Briefcase, label: 'Layanan' },
               { page: 'reports', icon: FileText, label: 'Laporan' },
             ].map(({ page, icon: Icon, label }) => (

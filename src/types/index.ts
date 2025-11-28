@@ -15,4 +15,4 @@ export interface Transaction {
     created_at: string;
 }
 
-export type NavPage = 'dashboard' | 'transactions' | 'services' | 'reports';
+export type NavPage = 'dashboard' | 'transactions' | 'services' | 'reports' | 'journal' | 'ledger';
